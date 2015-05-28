@@ -6,6 +6,18 @@ settings = require("settings-sharelatex")
 
 templates = {}
 
+templates.welcome =
+	subject: _.template "Welcome to #{settings.appName}"
+	layout: PersonalEmailLayout
+	type: "notification"
+	compiledTemplate: _.template """
+<p>Hi <%= first_name %>,</p>
+
+<p>Thanks for signing up on #{settings.appName}! If you ever get lost, you can log in again <a href="#{settings.siteUrl}/login">here</a> with the email address "<%= to %>".</p>
+
+<p>If you have any questions or problems, please contact <a href="mailto:#{settings.adminEmail}">#{settings.adminEmail}</a>.</p>
+"""
+
 templates.registered =	
 	subject:  _.template "Activate your #{settings.appName} Account"
 	layout: PersonalEmailLayout
