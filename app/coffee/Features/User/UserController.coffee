@@ -120,6 +120,12 @@ module.exports =
 		UserRegistrationHandler.registerNewUser req.body, (err, user) ->
 			if err? and err?.message == "EmailAlreadyRegistered"
 				return AuthenticationController.login req, res
+			else if err? and err?.message == "RegistrationDenied"
+				logger.log email: req.body.email, "registration denied"
+				res.send
+					message:
+						type: 'error'
+						text: 'Registreren is alleen mogelijk voor Arago-leden (gebruik een mailadres dat bekend is bij Arago).'
 			else if err?
 				next(err)
 			else
