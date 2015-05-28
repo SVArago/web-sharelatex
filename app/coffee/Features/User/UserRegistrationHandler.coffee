@@ -5,6 +5,7 @@ AuthenticationManager = require("../Authentication/AuthenticationManager")
 NewsLetterManager = require("../Newsletter/NewsletterManager")
 async = require("async")
 logger = require("logger-sharelatex")
+request = require("request")
 
 module.exports =
 	validateEmail : (email) ->
@@ -46,18 +47,29 @@ module.exports =
 				return callback err
 			if user?.holdingAccount == false
 				return callback(new Error("EmailAlreadyRegistered"), user)
-			self._createNewUserIfRequired user, userDetails, (err, user)->
+			opts =
+				method: "post"
+				uri: "https://www.arago.utwente.nl/api/is_mail_known.php"
+				json: true
+				body:
+					email: userDetails.email
+			request opts, (err, response, body) ->
 				if err?
 					return callback(err)
-				async.series [
-					(cb)-> User.update {_id: user._id}, {"$set":{holdingAccount:false}}, cb
-					(cb)-> AuthenticationManager.setUserPassword user._id, userDetails.password, cb
-					(cb)->
-						NewsLetterManager.subscribe user, ->
-						cb() #this can be slow, just fire it off
-				], (err)->
-					logger.log user: user, "registered"
-					callback(err, user)
+				if not body.known
+					return callback(new Error("RegistrationDenied"), null)
+				self._createNewUserIfRequired user, userDetails, (err, user)->
+					if err?
+						return callback(err)
+					async.series [
+						(cb)-> User.update {_id: user._id}, {"$set":{holdingAccount:false}}, cb
+						(cb)-> AuthenticationManager.setUserPassword user._id, userDetails.password, cb
+						(cb)->
+							NewsLetterManager.subscribe user, ->
+							cb() #this can be slow, just fire it off
+					], (err)->
+						logger.log user: user, "registered"
+						callback(err, user)
 
 
 
