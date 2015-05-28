@@ -6,6 +6,7 @@ UserRegistrationHandler = require("./UserRegistrationHandler")
 logger = require("logger-sharelatex")
 metrics = require("../../infrastructure/Metrics")
 Url = require("url")
+AuthenticationController = require("../Authentication/AuthenticationController")
 AuthenticationManager = require("../Authentication/AuthenticationManager")
 UserUpdater = require("./UserUpdater")
 SubscriptionDomainAllocator = require("../Subscription/SubscriptionDomainAllocator")
@@ -112,6 +113,33 @@ module.exports =
 					email: user.email
 					setNewPasswordUrl: setNewPasswordUrl
 				}
+
+	selfRegister : (req, res, next = (error) ->)->
+		logger.log email: req.body.email, "attempted register"
+		redir = Url.parse(req.body.redir or "/project").path
+		UserRegistrationHandler.registerNewUser req.body, (err, user) ->
+			if err? and err?.message == "EmailAlreadyRegistered"
+				return AuthenticationController.login req, res
+			else if err?
+				next(err)
+			else
+				metrics.inc "user.register.success"
+				EmailHandler.sendEmail "welcome", {
+					first_name: user.first_name
+					to: user.email
+				}, () ->
+
+				AuthenticationController.establishUserSession req, user, (error) ->
+					return callback(error) if error?
+					req.session.justRegistered = true
+					res.send
+						redir: redir
+						id: user._id.toString()
+						first_name: user.first_name
+						last_name: user.last_name
+						email: user.email
+						created: Date.now()
+
 
 	changePassword : (req, res, next = (error) ->)->
 		metrics.inc "user.password-change"

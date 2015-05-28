@@ -54,8 +54,8 @@ module.exports = class Router
 		app.get  '/logout', UserController.logout
 		app.get  '/restricted', SecurityManager.restricted
 
-		# Left as a placeholder for implementing a public register page
 		app.get  '/register', UserPagesController.registerPage
+		app.post '/register', UserController.selfRegister
 
 		EditorRouter.apply(app, httpAuth)
 		CollaboratorsRouter.apply(app)
