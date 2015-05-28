@@ -15,7 +15,7 @@ define [
 	"main/new-subscription"
 	"main/annual-upgrade"
 	"main/register-users"
-	"analytics/AbTestingManager"
+	"abtesting/AbTestingManager"
 	"directives/asyncForm"
 	"directives/stopPropagation"
 	"directives/focus"

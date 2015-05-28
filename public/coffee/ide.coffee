@@ -16,7 +16,7 @@ define [
 	"ide/directives/layout"
 	"ide/services/ide"
 	"__IDE_CLIENTSIDE_INCLUDES__"
-	"analytics/AbTestingManager"
+	"abtesting/AbTestingManager"
 	"directives/focus"
 	"directives/fineUpload"
 	"directives/scroll"
