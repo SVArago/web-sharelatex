@@ -91,7 +91,7 @@ module.exports =
 		UserRegistrationHandler.registerNewUser {
 			email: email
 			password: crypto.randomBytes(32).toString("hex")
-		}, (err, user)->
+		}, true, (err, user)->
 			if err? and err?.message != "EmailAlreadyRegistered"
 				return next(err)
 			
@@ -117,7 +117,7 @@ module.exports =
 	selfRegister : (req, res, next = (error) ->)->
 		logger.log email: req.body.email, "attempted register"
 		redir = Url.parse(req.body.redir or "/project").path
-		UserRegistrationHandler.registerNewUser req.body, (err, user) ->
+		UserRegistrationHandler.registerNewUser req.body, false, (err, user) ->
 			if err? and err?.message == "EmailAlreadyRegistered"
 				return AuthenticationController.login req, res
 			else if err? and err?.message == "RegistrationDenied"
