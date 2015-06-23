@@ -36,7 +36,7 @@ module.exports =
 		else
 			callback null, user
 
-	registerNewUser: (userDetails, callback)->
+	registerNewUser: (userDetails, isAdmin, callback)->
 		self = @
 		requestIsValid = @_registrationRequestIsValid userDetails
 		if !requestIsValid
@@ -47,17 +47,8 @@ module.exports =
 				return callback err
 			if user?.holdingAccount == false
 				return callback(new Error("EmailAlreadyRegistered"), user)
-			opts =
-				method: "post"
-				uri: "https://www.arago.utwente.nl/api/is_mail_known.php"
-				json: true
-				body:
-					email: userDetails.email
-			request opts, (err, response, body) ->
-				if err?
-					return callback(err)
-				if not body.known
-					return callback(new Error("RegistrationDenied"), null)
+
+			doCreateUser = () ->
 				self._createNewUserIfRequired user, userDetails, (err, user)->
 					if err?
 						return callback(err)
@@ -71,6 +62,21 @@ module.exports =
 						logger.log user: user, "registered"
 						callback(err, user)
 
+			if isAdmin
+				doCreateUser()
+			else
+				opts =
+					method: "post"
+					uri: "https://www.arago.utwente.nl/api/is_mail_known.php"
+					json: true
+					body:
+						email: userDetails.email
+				request opts, (err, response, body) ->
+					if err?
+						return callback(err)
+					if not body.known
+						return callback(new Error("RegistrationDenied"), null)
+						doCreateUser()
 
 
 
