@@ -76,7 +76,7 @@ module.exports =
 						return callback(err)
 					if not body.known
 						return callback(new Error("RegistrationDenied"), null)
-						doCreateUser()
+					doCreateUser()
 
 
 
