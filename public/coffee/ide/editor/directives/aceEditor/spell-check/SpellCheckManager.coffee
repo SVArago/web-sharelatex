@@ -22,7 +22,8 @@ define [
 				@closeContextMenu()
 
 			@editor.on "changeSession", (e) =>
-				@runSpellCheckSoon(200)
+				if @$scope.spellCheckEnabled and @$scope.spellCheckLanguage and @$scope.spellCheckLanguage != ""
+					@runSpellCheckSoon(200)
 
 				e.oldSession?.getDocument().off "change", onChange
 				e.session.getDocument().on "change", onChange
@@ -55,8 +56,8 @@ define [
 
 		runCheckOnChange: (e) ->
 			if @$scope.spellCheckLanguage and @$scope.spellCheckLanguage != ""
-				@highlightedWordManager.applyChange(e.data)
-				@markLinesAsUpdated(e.data)
+				@highlightedWordManager.applyChange(e)
+				@markLinesAsUpdated(e)
 				@runSpellCheckSoon()
 
 		openContextMenu: (e) ->
@@ -119,8 +120,8 @@ define [
 			@timeoutId = setTimeout run, delay
 
 		markLinesAsUpdated: (change) ->
-			start = change.range.start
-			end = change.range.end
+			start = change.start
+			end = change.end
 
 			insertLines = () =>
 				lines = end.row - start.row
@@ -132,15 +133,11 @@ define [
 				while lines--
 					@updatedLines.splice(start.row + 1, 1)
 
-			if change.action == "insertText"
+			if change.action == "insert"
 				@updatedLines[start.row] = true
 				insertLines()
-			else if change.action == "removeText"
+			else if change.action == "remove"
 				@updatedLines[start.row] = true
-				removeLines()
-			else if change.action == "insertLines"
-				insertLines()
-			else if change.action == "removeLines"
 				removeLines()
 
 		runSpellCheck: (linesToProcess) ->
@@ -171,7 +168,7 @@ define [
 			positions = []
 			for line, row in lines
 				if !linesToProcess? or linesToProcess[row]
-					wordRegex = /\\?['a-zA-Z\u00C0-\u00FF]+/g
+					wordRegex = /\\?['a-zA-Z\u00C0-\u017F]+/g
 					while (result = wordRegex.exec(line))
 						word = result[0]
 						if word[0] == "'"

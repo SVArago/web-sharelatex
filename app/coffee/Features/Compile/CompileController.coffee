@@ -51,14 +51,14 @@ module.exports = CompileController =
 		project_id = req.params.Project_id
 		CompileManager.deleteAuxFiles project_id, (error) ->
 			return next(error) if error?
-			res.send(200)
+			res.sendStatus(200)
 
 	compileAndDownloadPdf: (req, res, next)->
 		project_id = req.params.project_id
 		CompileManager.compile project_id, null, {}, (err)->
 			if err?
 				logger.err err:err, project_id:project_id, "something went wrong compile and downloading pdf"
-				res.send 500
+				res.sendStatus 500
 			url = "/project/#{project_id}/output/output.pdf"
 			CompileController.proxyToClsi project_id, url, req, res, next
 
@@ -102,3 +102,11 @@ module.exports = CompileController =
 		proxy.pipe(res)
 		proxy.on "error", (error) ->
 			logger.warn err: error, url: url, "CLSI proxy error"
+
+	wordCount: (req, res, next) ->
+		project_id = req.params.Project_id
+		file   = req.query.file || false
+		CompileManager.wordCount project_id, file, (error, body) ->
+			return next(error) if error?
+			res.contentType("application/json")
+			res.send body

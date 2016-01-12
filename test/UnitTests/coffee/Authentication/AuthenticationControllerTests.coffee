@@ -19,6 +19,7 @@ describe "AuthenticationController", ->
 			"../../infrastructure/Metrics": @Metrics = { inc: sinon.stub() }
 			"../Security/LoginRateLimiter": @LoginRateLimiter = { processLoginRequest:sinon.stub(), recordSuccessfulLogin:sinon.stub() }
 			"logger-sharelatex": @logger = { log: sinon.stub(), error: sinon.stub() }
+			"settings-sharelatex": {}
 		@user =
 			_id: ObjectId()
 			email: @email = "USER@example.com"
@@ -275,6 +276,56 @@ describe "AuthenticationController", ->
 					.calledWith(@req, {allow_auth_token: true})
 					.should.equal true
 
+	describe "requireGlobalLogin", ->
+		beforeEach ->
+			@req.headers = {}
+			@AuthenticationController.httpAuth = sinon.stub()
+		
+		describe "with white listed url", ->
+			beforeEach ->
+				@AuthenticationController.addEndpointToLoginWhitelist "/login"
+				@req._parsedUrl.pathname = "/login"
+				@AuthenticationController.requireGlobalLogin @req, @res, @next
+			
+			it "should call next() directly", ->
+				@next.called.should.equal true
+
+		describe "with white listed url and a query string", ->
+			beforeEach ->
+				@AuthenticationController.addEndpointToLoginWhitelist "/login"
+				@req._parsedUrl.pathname = "/login"
+				@req.url = "/login?query=something"
+				@AuthenticationController.requireGlobalLogin @req, @res, @next
+			
+			it "should call next() directly", ->
+				@next.called.should.equal true		
+
+		describe "with http auth", ->
+			beforeEach ->
+				@req.headers["authorization"] = "Mock Basic Auth"
+				@AuthenticationController.requireGlobalLogin @req, @res, @next
+
+			it "should pass the request onto httpAuth", ->
+				@AuthenticationController.httpAuth
+					.calledWith(@req, @res, @next)
+					.should.equal true
+			
+		describe "with a user session", ->
+			beforeEach ->
+				@req.session =
+					user: {"mock": "user"}
+				@AuthenticationController.requireGlobalLogin @req, @res, @next
+			
+			it "should call next() directly", ->
+				@next.called.should.equal true
+			
+		describe "with no login credentials", ->
+			beforeEach ->
+				@AuthenticationController.requireGlobalLogin @req, @res, @next
+				
+			it "should redirect to the /login page", ->
+				@res.redirectedTo.should.equal "/login"
+
 	describe "_redirectToLoginOrRegisterPage", ->
 		beforeEach ->
 			@middleware = @AuthenticationController.requireLogin(@options = { load_from_db: false })
@@ -372,6 +423,7 @@ describe "AuthenticationController", ->
 		beforeEach ->
 			@req.session =
 				save: sinon.stub().callsArg(0)
+				destroy : sinon.stub()
 			@req.sessionStore =
 				generate: sinon.stub()
 			@AuthenticationController.establishUserSession @req, @user, @callback
@@ -383,6 +435,9 @@ describe "AuthenticationController", ->
 			@req.session.user.last_name.should.equal @user.last_name
 			@req.session.user.referal_id.should.equal @user.referal_id
 			@req.session.user.isAdmin.should.equal @user.isAdmin
+			
+		it "should destroy the session", ->
+			@req.session.destroy.called.should.equal true
 			
 		it "should regenerate the session to protect against session fixation", ->
 			@req.sessionStore.generate.calledWith(@req).should.equal true

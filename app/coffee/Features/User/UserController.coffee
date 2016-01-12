@@ -9,9 +9,9 @@ Url = require("url")
 AuthenticationController = require("../Authentication/AuthenticationController")
 AuthenticationManager = require("../Authentication/AuthenticationManager")
 UserUpdater = require("./UserUpdater")
-SubscriptionDomainAllocator = require("../Subscription/SubscriptionDomainAllocator")
+SubscriptionDomainHandler = require("../Subscription/SubscriptionDomainHandler")
 EmailHandler = require("../Email/EmailHandler")
-PasswordResetTokenHandler = require "../PasswordReset/PasswordResetTokenHandler"
+OneTimeTokenHandler = require "../Security/OneTimeTokenHandler"
 settings = require "settings-sharelatex"
 crypto = require "crypto"
 
@@ -21,8 +21,8 @@ module.exports =
 		user_id = req.session.user._id
 		UserDeleter.deleteUser user_id, (err)->
 			if !err?
-				req.session.destroy()
-			res.send(200)
+				req.session?.destroy()
+			res.sendStatus(200)
 
 	unsubscribe: (req, res)->
 		UserLocator.findById req.session.user._id, (err, user)->
@@ -35,7 +35,7 @@ module.exports =
 		User.findById user_id, (err, user)->
 			if err? or !user?
 				logger.err err:err, user_id:user_id, "problem updaing user settings"
-				return res.send 500
+				return res.sendStatus 500
 
 			if req.body.first_name?
 				user.first_name = req.body.first_name.trim()
@@ -60,9 +60,9 @@ module.exports =
 			user.save (err)->
 				newEmail = req.body.email?.trim().toLowerCase()
 				if !newEmail? or newEmail == user.email
-					return res.send 200
+					return res.sendStatus 200
 				else if newEmail.indexOf("@") == -1
-					return res.send(400)
+					return res.sendStatus(400)
 				else
 					UserUpdater.changeEmailAddress user_id, newEmail, (err)->
 						if err?
@@ -72,7 +72,7 @@ module.exports =
 							else
 								message = req.i18n.translate("problem_changing_email_address")
 							return res.send 500, {message:message}
-						res.send(200)
+						res.sendStatus(200)
 
 	logout : (req, res)->
 		metrics.inc "user.logout"
@@ -85,7 +85,7 @@ module.exports =
 	register : (req, res, next = (error) ->)->
 		email = req.body.email
 		if !email? or email == ""
-			res.send 422 # Unprocessable Entity
+			res.sendStatus 422 # Unprocessable Entity
 			return
 		logger.log {email}, "registering new user"
 		UserRegistrationHandler.registerNewUser {
@@ -99,10 +99,10 @@ module.exports =
 				logger.log {email}, "user already exists, resending welcome email"
 
 			ONE_WEEK = 7 * 24 * 60 * 60 # seconds
-			PasswordResetTokenHandler.getNewToken user._id, { expiresIn: ONE_WEEK }, (err, token)->
+			OneTimeTokenHandler.getNewToken user._id, { expiresIn: ONE_WEEK }, (err, token)->
 				return next(err) if err?
 				
-				setNewPasswordUrl = "#{settings.siteUrl}/user/password/set?passwordResetToken=#{token}"
+				setNewPasswordUrl = "#{settings.siteUrl}/user/password/set?passwordResetToken=#{token}&email=#{encodeURIComponent(email)}"
 
 				EmailHandler.sendEmail "registered", {
 					to: user.email

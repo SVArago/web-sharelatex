@@ -98,7 +98,6 @@ describe "CompileController", ->
 
 		describe "when downloading for embedding", ->
 			beforeEach ->
-				@project.useClsi2 = true
 				@CompileController.proxyToClsi = sinon.stub()
 				@CompileController.downloadPdf(@req, @res, @next)
 
@@ -321,7 +320,7 @@ describe "CompileController", ->
 			@CompileManager.deleteAuxFiles = sinon.stub().callsArg(1)
 			@req.params =
 				Project_id: @project_id
-			@res.send = sinon.stub()
+			@res.sendStatus = sinon.stub()
 			@CompileController.deleteAuxFiles @req, @res, @next
 
 		it "should proxy to the CLSI", ->
@@ -330,7 +329,7 @@ describe "CompileController", ->
 				.should.equal true
 
 		it "should return a 200", ->
-			@res.send
+			@res.sendStatus
 				.calledWith(200)
 				.should.equal true
 
@@ -353,3 +352,22 @@ describe "CompileController", ->
 			@CompileController.compileAndDownloadPdf @req, @res
 			@CompileController.proxyToClsi.calledWith(@project_id, "/project/#{@project_id}/output/output.pdf", @req, @res).should.equal true
 			done()
+
+	describe "wordCount", ->
+		beforeEach ->
+			@CompileManager.wordCount = sinon.stub().callsArgWith(2, null, {content:"body"})
+			@req.params =
+				Project_id: @project_id
+			@res.send = sinon.stub()
+			@res.contentType = sinon.stub()
+			@CompileController.wordCount @req, @res, @next
+
+		it "should proxy to the CLSI", ->
+			@CompileManager.wordCount
+				.calledWith(@project_id, false)
+				.should.equal true
+
+		it "should return a 200 and body", ->
+			@res.send
+				.calledWith({content:"body"})
+				.should.equal true

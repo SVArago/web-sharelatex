@@ -58,7 +58,8 @@ describe "SubscriptionController sanboxed", ->
 			gaExperiments:{}
 		@GeoIpLookup =
 			getCurrencyCode:sinon.stub()
-
+		@SubscriptionDomainHandler = 
+			getDomainLicencePage:sinon.stub()	
 		@SubscriptionController = SandboxedModule.require modulePath, requires:
 			'../../managers/SecurityManager': @SecurityManager
 			'./SubscriptionHandler': @SubscriptionHandler
@@ -69,6 +70,7 @@ describe "SubscriptionController sanboxed", ->
 			'./RecurlyWrapper': @RecurlyWrapper
 			"logger-sharelatex": log:->
 			"settings-sharelatex": @settings
+			"./SubscriptionDomainHandler":@SubscriptionDomainHandler
 
 
 		@res = new MockResponse()
@@ -206,6 +208,31 @@ describe "SubscriptionController sanboxed", ->
 				@res.redirected.should.equal true
 				@res.redirectedTo.should.equal "/user/subscription/plans"
 
+		describe "with a potential domain licence", ->
+			beforeEach () ->
+				@groupUrl = "/go/over-here"
+				@SubscriptionDomainHandler.getDomainLicencePage.returns(@groupUrl)
+
+			describe "without an existing subscription", ->
+				beforeEach (done)->
+					@res.callback = done
+					@LimitationsManager.userHasSubscriptionOrIsGroupMember.callsArgWith(1, null, false)
+					@SubscriptionController.userSubscriptionPage @req, @res
+
+				it "should redirect to the group invite url", ->
+					@res.redirected.should.equal true
+					@res.redirectedTo.should.equal @groupUrl
+
+			describe "with an existing subscription", ->
+				beforeEach (done)->
+					@res.callback = done
+					@LimitationsManager.userHasSubscriptionOrIsGroupMember.callsArgWith(1, null, true)
+					@SubscriptionController.userSubscriptionPage @req, @res
+
+
+				it "should render the dashboard", ->
+					@res.renderedTemplate.should.equal "subscriptions/dashboard"
+				
 		describe "with a user with a paid subscription", ->
 			beforeEach (done) ->
 				@res.callback = done
@@ -258,9 +285,9 @@ describe "SubscriptionController sanboxed", ->
 	describe "createSubscription", ->
 		beforeEach (done)->
 			@res =
-				send:->
+				sendStatus:->
 					done()
-			sinon.spy @res, "send"
+			sinon.spy @res, "sendStatus"
 			@subscriptionDetails =
 				card:"1234"
 				cvv:"123"
@@ -273,7 +300,7 @@ describe "SubscriptionController sanboxed", ->
 			done()
 
 		it "should redurect to the subscription page", (done)->
-			@res.send.calledWith(201).should.equal true
+			@res.sendStatus.calledWith(201).should.equal true
 			done()
 
 
@@ -336,9 +363,9 @@ describe "SubscriptionController sanboxed", ->
 						expired_subscription_notification:
 							subscription:
 								uuid: @activeRecurlySubscription.uuid
-				@res = send:->
+				@res = sendStatus:->
 					done()
-				sinon.spy @res, "send"
+				sinon.spy @res, "sendStatus"
 				@SubscriptionController.recurlyCallback @req, @res
 
 			it "should tell the SubscriptionHandler to process the recurly callback", (done)->
@@ -347,7 +374,7 @@ describe "SubscriptionController sanboxed", ->
 
 
 			it "should send a 200", (done)->
-				@res.send.calledWith(200)
+				@res.sendStatus.calledWith(200)
 				done()
 
 		describe "with a non-actionable request", ->
@@ -358,16 +385,16 @@ describe "SubscriptionController sanboxed", ->
 						new_subscription_notification:
 							subscription:
 								uuid: @activeRecurlySubscription.uuid
-				@res = send:->
+				@res = sendStatus:->
 					done()
-				sinon.spy @res, "send"
+				sinon.spy @res, "sendStatus"
 				@SubscriptionController.recurlyCallback @req, @res
 
 			it "should not call the subscriptionshandler", ->
 				@SubscriptionHandler.recurlyCallback.called.should.equal false
 
 			it "should respond with a 200 status", ->
-				@res.send.calledWith(200)
+				@res.sendStatus.calledWith(200)
 
 
 	describe "renderUpgradeToAnnualPlanPage", ->
@@ -415,7 +442,7 @@ describe "SubscriptionController sanboxed", ->
 			@req.body =
 				planName:"student"
 
-			@res.send = ()=>
+			@res.sendStatus = ()=>
 				@SubscriptionHandler.updateSubscription.calledWith(@user, "student-annual", "STUDENTCODEHERE").should.equal true
 				done()
 
@@ -426,7 +453,7 @@ describe "SubscriptionController sanboxed", ->
 			@req.body =
 				planName:"collaborator"
 
-			@res.send = (url)=>
+			@res.sendStatus = (url)=>
 				@SubscriptionHandler.updateSubscription.calledWith(@user, "collaborator-annual", "COLLABORATORCODEHERE").should.equal true
 				done()
 

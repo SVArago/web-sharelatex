@@ -105,6 +105,8 @@ module.exports =
 			
 	templates:
 		user_id: process.env.TEMPLATES_USER_ID or "5395eb7aad1f29a88756c7f2"
+		showSocialButtons: false
+		showComments: false
 
 	# Where your instance of ShareLaTeX can be found publically. Used in emails
 	# that are sent out, generated links, etc.
@@ -162,6 +164,17 @@ module.exports =
 		{name: "English", code: "en"},
 		{name: "French", code: "fr"}
 	]
+
+
+	# Password Settings
+	# -----------
+	# These restrict the passwords users can use when registering
+	# opts are from http://antelle.github.io/passfield
+	# passwordStrengthOptions:
+	# 	pattern: "aA$3"
+	# 	length:
+	# 		min: 8
+	# 		max: 50
 
 	# Email support
 	# -------------
@@ -227,6 +240,13 @@ module.exports =
 	# then set this to true to allow it to correctly detect the forwarded IP
 	# address and http/https protocol information.
 	behindProxy: false
+	
+	# Cookie max age (in milliseconds). Set to false for a browser session.
+	cookieSessionLength: 5 * 24 * 60 * 60 * 1000 # 5 days
+	
+	# Should we allow access to any page without logging in? This includes
+	# public projects, /learn, /templates, about pages, etc.
+	allowPublicAccess: false
 
 	# Internal configs
 	# ----------------
@@ -329,6 +349,10 @@ module.exports =
 	
 	reloadModuleViewsOnEachRequest: true
 
+	domainLicences: [
+		
+	]
+
 	# ShareLaTeX Server Pro options (https://www.sharelatex.com/university/onsite.html)
 	# ----------
 
@@ -342,5 +366,13 @@ module.exports =
 	# 	fieldName: 'LDAP User'
 	# 	placeholder: 'LDAP User ID'
 	# 	emailAtt: 'mail'
+	
+	#templateLinks: [{
+	#	name : "CV projects",
+	#	url : "/templates/cv"
+	#},{
+	#	name : "all projects",
+	#	url: "/templates/all"
+	#}]
 
 

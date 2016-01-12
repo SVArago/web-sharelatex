@@ -87,11 +87,10 @@ module.exports = (grunt) ->
 					paths:
 						"moment": "libs/moment-2.9.0"
 						"mathjax": "/js/libs/mathjax/MathJax.js?config=TeX-AMS_HTML"
+						"libs/pdf": "libs/pdfjs-1.0.1040/pdf"
 					shim:
-						"libs/pdfListView/PdfListView":
-							deps: ["libs/pdf"]
 						"libs/pdf":
-							deps: ["libs/compatibility"]
+							deps: ["libs/pdfjs-1.0.1040/compatibility"]
 
 					skipDirOptimize: true
 					modules: [
@@ -281,7 +280,7 @@ module.exports = (grunt) ->
 
 	grunt.registerTask 'install', "Compile everything when installing as an npm module", ['compile']
 
-	grunt.registerTask 'test:unit', 'Run the unit tests (use --grep=<regex> or --feature=<feature> for individual tests)', ['compile:server', 'compile:unit_tests', 'mochaTest:unit']
+	grunt.registerTask 'test:unit', 'Run the unit tests (use --grep=<regex> or --feature=<feature> for individual tests)', ['compile:server', 'compile:modules:server', 'compile:unit_tests', 'compile:modules:unit_tests', 'mochaTest:unit'].concat(moduleUnitTestTasks)
 	grunt.registerTask 'test:smoke', 'Run the smoke tests', ['compile:smoke_tests', 'mochaTest:smoke']
 	
 	grunt.registerTask 'test:modules:unit', 'Run the unit tests for the modules', ['compile:modules:server', 'compile:modules:unit_tests'].concat(moduleUnitTestTasks)
@@ -300,7 +299,7 @@ module.exports = (grunt) ->
 
 		settings = require "settings-sharelatex"
 		UserRegistrationHandler = require "./app/js/Features/User/UserRegistrationHandler"
-		PasswordResetTokenHandler = require "./app/js/Features/PasswordReset/PasswordResetTokenHandler"
+		OneTimeTokenHandler = require "./app/js/Features/Security/OneTimeTokenHandler"
 		UserRegistrationHandler.registerNewUser {
 			email: email
 			password: require("crypto").randomBytes(32).toString("hex")
@@ -311,7 +310,7 @@ module.exports = (grunt) ->
 			user.save (error) ->
 				throw error if error?
 				ONE_WEEK = 7 * 24 * 60 * 60 # seconds
-				PasswordResetTokenHandler.getNewToken user._id, { expiresIn: ONE_WEEK }, (err, token)->
+				OneTimeTokenHandler.getNewToken user._id, { expiresIn: ONE_WEEK }, (err, token)->
 					return next(err) if err?
 					
 					console.log ""

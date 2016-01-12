@@ -3,6 +3,9 @@ define [
 	"ide/online-users/controllers/OnlineUsersController"
 ], () ->
 	class OnlineUsersManager
+
+		cursorUpdateInterval:500
+
 		constructor: (@ide, @$scope) ->
 			@$scope.onlineUsers = {}
 			@$scope.onlineUserCursorHighlights = {}
@@ -53,7 +56,11 @@ define [
 					user.doc = @ide.fileTreeManager.findEntityById(user.doc_id)
 
 				if user.name?.trim().length == 0
-					user.name = user.email
+					user.name = user.email.trim()
+				
+				user.initial = user.name?[0]
+				if !user.initial or user.initial == " "
+					user.initial = "?"
 
 				@$scope.onlineUsersArray.push user
 
@@ -70,20 +77,29 @@ define [
 					hue: @getHueForUserId(client.user_id)
 				}
 
-		UPDATE_INTERVAL: 500
+			if @$scope.onlineUsersArray.length > 0
+				delete @cursorUpdateTimeout
+				@cursorUpdateInterval = 500
+			else
+				delete @cursorUpdateTimeout
+				@cursorUpdateInterval = 60 * 1000 * 5
+
+
 		sendCursorPositionUpdate: (position) ->
+			if position?
+				@$scope.currentPosition = position  # keep track of the latest position
 			if !@cursorUpdateTimeout?
 				@cursorUpdateTimeout = setTimeout ()=>
 					doc_id   = @$scope.editor.open_doc_id
-
+					# always send the latest position to other clients
 					@ide.socket.emit "clientTracking.updatePosition", {
-						row: position.row
-						column: position.column
+						row: @$scope.currentPosition?.row
+						column: @$scope.currentPosition?.column
 						doc_id: doc_id
 					}
 
 					delete @cursorUpdateTimeout
-				, @UPDATE_INTERVAL
+				, @cursorUpdateInterval
 
 		OWN_HUE: 200 # We will always appear as this color to ourselves
 		ANONYMOUS_HUE: 100

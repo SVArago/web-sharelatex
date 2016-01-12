@@ -6,7 +6,7 @@ define [
 	"ide/pdfng/directives/pdfRenderer"
 	"ide/pdfng/directives/pdfPage"
 	"ide/pdfng/directives/pdfSpinner"
-	"libs/pdf"  # needs pdfjs-1.0.712, override the path in require.js to get it
+	"libs/pdf"
 ], (
 	App
 	pdfTextLayer
@@ -369,7 +369,7 @@ define [
 				scope.$on 'pdf:error', (event, error) ->
 					return if error == 'cancelled'
 					# check if too many retries or file is missing
-					if scope.loadCount > 3 || error.match(/^Missing PDF/i) || error.match(/^loading/i)
+					if scope.loadCount > 3 || error?.match(/^Missing PDF/i) || error?.match(/^loading/i)
 						scope.$emit 'pdf:error:display'
 						return
 					if scope.loadSuccess

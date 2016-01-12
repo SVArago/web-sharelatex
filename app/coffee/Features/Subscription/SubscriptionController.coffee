@@ -8,7 +8,7 @@ RecurlyWrapper = require './RecurlyWrapper'
 Settings   = require 'settings-sharelatex'
 logger     = require('logger-sharelatex')
 GeoIpLookup = require("../../infrastructure/GeoIpLookup")
-
+SubscriptionDomainHandler = require("./SubscriptionDomainHandler")
 
 module.exports = SubscriptionController =
 
@@ -84,9 +84,13 @@ module.exports = SubscriptionController =
 		SecurityManager.getCurrentUser req, (error, user) =>
 			return next(error) if error?
 			LimitationsManager.userHasSubscriptionOrIsGroupMember user, (err, hasSubOrIsGroupMember, subscription)->
+				groupLicenceInviteUrl = SubscriptionDomainHandler.getDomainLicencePage(user)
 				if subscription?.customAccount
 					logger.log user: user, "redirecting to plans"
-					res.redirect "/user/subscription/custom_account"				
+					res.redirect "/user/subscription/custom_account"
+				else if groupLicenceInviteUrl? and !hasSubOrIsGroupMember
+					logger.log user:user, "redirecting to group subscription invite page"		
+					res.redirect groupLicenceInviteUrl
 				else if !hasSubOrIsGroupMember
 					logger.log user: user, "redirecting to plans"
 					res.redirect "/user/subscription/plans"
@@ -143,8 +147,8 @@ module.exports = SubscriptionController =
 			SubscriptionHandler.createSubscription user, subscriptionDetails, recurly_token_id, (err)->
 				if err?
 					logger.err err:err, user_id:user._id, "something went wrong creating subscription"
-					return res.send 500
-				res.send 201
+					return res.sendStatus 500
+				res.sendStatus 201
 
 	successful_subscription: (req, res)->
 		SecurityManager.getCurrentUser req, (error, user) =>
@@ -187,9 +191,9 @@ module.exports = SubscriptionController =
 		if req.body? and req.body["expired_subscription_notification"]?
 			recurlySubscription = req.body["expired_subscription_notification"].subscription
 			SubscriptionHandler.recurlyCallback recurlySubscription, ->
-				res.send 200
+				res.sendStatus 200
 		else
-			res.send 200
+			res.sendStatus 200
 
 	renderUpgradeToAnnualPlanPage: (req, res)->
 		SecurityManager.getCurrentUser req, (error, user) ->
@@ -217,9 +221,9 @@ module.exports = SubscriptionController =
 			SubscriptionHandler.updateSubscription user, annualPlanName, coupon_code, (err)->
 				if err?
 					logger.err err:err, user_id:user._id, "error updating subscription"
-					res.send 500
+					res.sendStatus 500
 				else
-					res.send 200
+					res.sendStatus 200
 
 
 	recurlyNotificationParser: (req, res, next) ->

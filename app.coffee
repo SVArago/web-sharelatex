@@ -23,9 +23,6 @@ Server.app.use (error, req, res, next) ->
 		res.end()
 
 if Settings.catchErrors
-	# fairy cleans then exits on an uncaughtError, but we don't want
-	# to exit so it doesn't need to do this.
-	require "fairy"
 	process.removeAllListeners "uncaughtException"
 	process.on "uncaughtException", (error) ->
 		logger.error err: error, "uncaughtException"
@@ -33,7 +30,7 @@ if Settings.catchErrors
 port = Settings.port or Settings.internal?.web?.port or 3000
 host = Settings.internal.web.host or "localhost"
 Server.server.listen port, host, ->
-	logger.info("web-sharelatex listening on port #{port}")
+	logger.info "web starting up, listening on #{host}:#{port}"
 	logger.info("#{require('http').globalAgent.maxSockets} sockets enabled")
 	if argv.user
 		process.setuid argv.user
