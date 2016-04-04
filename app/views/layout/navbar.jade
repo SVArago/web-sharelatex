@@ -4,7 +4,9 @@ nav.navbar.navbar-default
 			button.navbar-toggle(ng-init="navCollapsed = true", ng-click="navCollapsed = !navCollapsed", ng-class="{active: !navCollapsed}")
 				i.fa.fa-bars
 			if nav.title
-				a(href='/').navbar-title #{nav.title}
+				a(href='/').navbar-title
+					img(src="/img/arago-logo.png").navbar-logo
+					#{nav.title}
 			else
 				a(href='/').navbar-brand
 
